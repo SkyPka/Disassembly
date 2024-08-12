@@ -9,7 +9,32 @@ typedef struct _Standard_RegCode{
     int id;
 } RegCode;
 
-
+typedef struct _Registers{
+    char r8[3];
+    char r16[3];
+    char r32[4];
+    char mm[4];
+    char xmm[5];
+} _RegisterGroup;
+struct{
+    _RegisterGroup R0;
+    _RegisterGroup R1;
+    _RegisterGroup R2;
+    _RegisterGroup R3;
+    _RegisterGroup R4;
+    _RegisterGroup R5;
+    _RegisterGroup R6;
+    _RegisterGroup R7;
+} RegisterGroup={
+    {"AL","AX","EAX","MM0","XMM0"},
+    {"CL","CX","ECX","MM1","XMM1"},
+    {"DL","DX","EDX","MM2","XMM2"},
+    {"BL","BX","EBX","MM3","XMM3"},
+    {"AH","SP","ESP","MM4","XMM4"},
+    {"CH","BP","EBP","MM5","XMM5"},
+    {"DH","SI","ESI","MM6","XMM6"},
+    {"BH","DI","EDI","MM7","XMM7"}
+};
 
 struct _RegTable{
     RegCode RC0;
@@ -59,7 +84,7 @@ struct _RegTable{
 
 //ModRM
 
-char EffectiveAddress16Bit_ModRM[32][19]={//$H=disp16,$O=disp8
+char EffectiveAddress16Bit_ModRM[32][11]={//$H=disp16,$O=disp8,#0-7:RegisterGroup
     "[BX+SI]",
     "[BX+DI]",
     "[BP+SI]",
@@ -68,40 +93,40 @@ char EffectiveAddress16Bit_ModRM[32][19]={//$H=disp16,$O=disp8
     "[DI]",
     "$H",
     "[BX]",
-    "[BX+SI]+$O",
-    "[BX+DI]+$O",
-    "[BP+SI]+$O",
-    "[BP+DI]+$O",
-    "[SI]+$O",
-    "[DI]+$O",
-    "[BP]+$O",
-    "[BX]+$O",
-    "[BX+SI]+$H",
-    "[BX+DI]+$H",
-    "[BP+SI]+$H",
-    "[BP+DI]+$H",
-    "[SI]+$H",
-    "[DI]+$H",
-    "[BP]+$H",
-    "[BX]+$H",
-    "EAX/AX/AL/MM0/XMM0",
-    "ECX/CX/CL/MM1/XMM1",
-    "EDX/DX/DL/MM2/XMM2",
-    "EBX/BX/BL/MM3/XMM3",
-    "ESP/SP/AH/MM4/XMM4",
-    "EBP/BP/CH/MM5/XMM5",
-    "ESI/SI/DH/MM6/XMM6",
-    "EDI/DI/BH/MM7/XMM7",
+    "[BX+SI+$O]",
+    "[BX+DI+$O]",
+    "[BP+SI+$O]",
+    "[BP+DI+$O]",
+    "[SI+$O]",
+    "[DI+$O]",
+    "[BP+$O]",
+    "[BX+$O]",
+    "[BX+SI+$H]",
+    "[BX+DI+$H]",
+    "[BP+SI+$H]",
+    "[BP+DI+$H]",
+    "[SI+$H]",
+    "[DI+$H]",
+    "[BP+$H]",
+    "[BX+$H]",
+    "#0",
+    "#1",
+    "#2",
+    "#3",
+    "#4",
+    "#5",
+    "#6",
+    "#7",
 };//From Table 2-1. 16-Bit Addressing Forms with the ModR/M Byte
-char REG[8][19]={
-    "AL/AX/EAX/MM0/XMM0",//r8/r16/r32/mm/xmm
-    "CL/CX/ECX/MM1/XMM1",
-    "DL/DX/EDX/MM2/XMM2",
-    "BL/BX/EBX/MM3/XMM3",
-    "AH/SP/ESP/MM4/XMM4",
-    "CH/BP/EBP/MM5/XMM5",
-    "DH/SI/ESI/MM6/XMM6",
-    "BH/DI/EDI/MM7/XMM7"
+char REG[8][5]={//use for search index
+    "AL","AX","EAX","MM0","XMM0",
+    "CL","CX","ECX","MM1","XMM1",
+    "DL","DX","EDX","MM2","XMM2",
+    "BL","BX","EBX","MM3","XMM3",
+    "AH","SP","ESP","MM4","XMM4",
+    "CH","BP","EBP","MM5","XMM5",
+    "DH","SI","ESI","MM6","XMM6",
+    "BH","DI","EDI","MM7","XMM7"
 };
 /*
 Index from Eff...Add...[][]=24 ( 1 1  0 0 0 )
@@ -121,30 +146,30 @@ char EffectiveAddress32Bit_ModRM[32][19]={//$5=disp32(#2**5),$S=[--][--]=>SIB by
     "$5",
     "[ESI]",
     "[EDI]",
-    "[EAX]+$O",
-    "[ECX]+$O",
-    "[EDX]+$O",
-    "[EBX]+$O",
+    "[EAX+$O]",
+    "[ECX+$O]",
+    "[EDX+$O]",
+    "[EBX+$O]",//Change:from [EBX]+$O to [EBX+$O]
     "$S+$O",
-    "[EBP]+$O",
-    "[ESI]+$O",
-    "[EDI]+$O",
-    "[EAX]+$5",
-    "[ECX]+$5",
-    "[EDX]+$5",
-    "[EBX]+$5",
+    "[EBP+$O]",
+    "[ESI+$O]",
+    "[EDI+$O]",
+    "[EAX+$5]",
+    "[ECX+$5]",
+    "[EDX+$5]",
+    "[EBX+$5]",
     "$S+$5",
-    "[EBP]+$5",
-    "[ESI]+$5",
-    "[EDI]+$5",
-    "EAX/AX/AL/MM0/XMM0",
-    "ECX/CX/CL/MM1/XMM1",
-    "EDX/DX/DL/MM2/XMM2",
-    "EBX/BX/BL/MM3/XMM3",
-    "ESP/SP/AH/MM4/XMM4",
-    "EBP/BP/CH/MM5/XMM5",
-    "ESI/SI/DH/MM6/XMM6",
-    "EDI/DI/BH/MM7/XMM7",
+    "[EBP+$5]",
+    "[ESI+$5]",
+    "[EDI+$5]",
+    "#0",
+    "#1",
+    "#2",
+    "#3",
+    "#4",
+    "#5",
+    "#6",
+    "#7",
 };//from Table 2-2. 32-Bit Addressing Forms with the ModR/M Byte
 
 //SIB
