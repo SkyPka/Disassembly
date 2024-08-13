@@ -6,8 +6,8 @@ Instruction Format
 
 //66H,F2H,F3H,VEX,REX.... Prefixes
 */
-const int OperandlistRegisterGroupIndex=25;
-typedef enum{//from 3.1.1.3 Instruction Column in the Opcode Summary Table
+const int OperandlistRegisterGroupIndex=29;
+typedef enum _o{//from 3.1.1.3 Instruction Column in the Opcode Summary Table
     NULL=0,
     r8,r16,r32,r64,
     imm8,imm16,imm32,imm64,
