@@ -1,10 +1,11 @@
+#include "Instruction.c"
 //by 325383-sdm-vol-2abcd.pdf
 
 typedef struct _Standard_RegCode{
-    char* b;
-    char* w;
-    char* d;
-    char* q;//64bit only
+    char b[5];
+    char w[5];
+    char d[5];
+    char q[6];//64bit only
     int REX_B:4;//[1101]=>b=>true,w=>true,d=>false,q=>true
     int id;
 } RegCode;
@@ -16,16 +17,7 @@ typedef struct _Registers{
     char mm[4];
     char xmm[5];
 } _RegisterGroup;
-struct{
-    _RegisterGroup R0;
-    _RegisterGroup R1;
-    _RegisterGroup R2;
-    _RegisterGroup R3;
-    _RegisterGroup R4;
-    _RegisterGroup R5;
-    _RegisterGroup R6;
-    _RegisterGroup R7;
-} RegisterGroup={
+_RegisterGroup RegisterGroup[8]={
     {"AL","AX","EAX","MM0","XMM0"},
     {"CL","CX","ECX","MM1","XMM1"},
     {"DL","DX","EDX","MM2","XMM2"},
@@ -36,29 +28,7 @@ struct{
     {"BH","DI","EDI","MM7","XMM7"}
 };
 
-struct _RegTable{
-    RegCode RC0;
-    RegCode RC1;
-    RegCode RC2;
-    RegCode RC3;
-    RegCode RC4;
-    RegCode RC5;
-    RegCode RC6;
-    RegCode RC7;
-    RegCode RC8;
-    RegCode RC9;
-    RegCode RC10;
-    RegCode RC11;
-    RegCode RC12;
-    RegCode RC13;
-    RegCode RC14;
-    RegCode RC15;
-    RegCode RC16;
-    RegCode RC17;
-    RegCode RC18;
-    RegCode RC19;
-    RegCode RC20;
-} RegTable={//from Table 3-1. Register Codes Associated With +rb, +rw, +rd, +ro
+RegCode RegTable[20]={//from Table 3-1. Register Codes Associated With +rb, +rw, +rd, +ro
     {"AL","AX","EAX","RAX",0,0},
     {"CL","CX","ECX","RCX",0,1},
     {"DL","DX","EDX","RDX",0,2},
@@ -84,39 +54,45 @@ struct _RegTable{
 
 //ModRM
 
-char EffectiveAddress16Bit_ModRM[32][11]={//$H=disp16,$O=disp8,#0-7:RegisterGroup
-    "[BX+SI]",
-    "[BX+DI]",
-    "[BP+SI]",
-    "[BP+DI]",
-    "[SI]",
-    "[DI]",
-    "$H",
-    "[BX]",
-    "[BX+SI+$O]",
-    "[BX+DI+$O]",
-    "[BP+SI+$O]",
-    "[BP+DI+$O]",
-    "[SI+$O]",
-    "[DI+$O]",
-    "[BP+$O]",
-    "[BX+$O]",
-    "[BX+SI+$H]",
-    "[BX+DI+$H]",
-    "[BP+SI+$H]",
-    "[BP+DI+$H]",
-    "[SI+$H]",
-    "[DI+$H]",
-    "[BP+$H]",
-    "[BX+$H]",
-    "#0",
-    "#1",
-    "#2",
-    "#3",
-    "#4",
-    "#5",
-    "#6",
-    "#7",
+typedef struct _ModRMEleument{
+    operand Operand0;
+    operand Operand1;
+    char attr[3];
+} ModRMEleument;
+
+ModRMEleument EffectiveAddress16Bit_ModRM[32]={//$H=disp16,$O=disp8,#0-7:RegisterGroup
+    {BX,SI,0},//"[BX+SI]",
+    {BX,DI,0},//"[BX+DI]",
+    {BP,SI,0},//"[BP+SI]",
+    {BP,DI,0},//"[BP+DI]",
+    {SI,0,0},//"[SI]",
+    {DI,0,0},//"[DI]",
+    {0,0,"$H"},//"$H",
+    {BX,0,0},//"[BX]",
+    {BX,SI,"$O"},//"[BX+SI+$O]",
+    {BX,DI,"$O"},//"[BX+DI+$O]",
+    {BP,SI,"$O"},//"[BP+SI+$O]",
+    {BP,DI,"$O"},//"[BP+DI+$O]",
+    {SI,0,"$O"},//"[SI+$O]",
+    {DI,0,"$O"},//"[DI+$O]",
+    {BP,0,"$O"},//"[BP+$O]",
+    {BX,0,"$O"},//"[BX+$O]",
+    {BX,SI,"$H"},//"[BX+SI+$H]",
+    {BX,DI,"$H"},//"[BX+DI+$H]",
+    {BP,SI,"$H"},//"[BP+SI+$H]",
+    {BP,DI,"$H"},//"[BP+DI+$H]",
+    {SI,0,"$H"},//"[SI+$H]",
+    {DI,0,"$H"},//"[DI+$H]",
+    {BP,0,"$H"},//"[BP+$H]",
+    {BX,0,"$H"},//"[BX+$H]",
+    {0,0,"#0"},//"#0",
+    {0,0,"#1"},//"#1",
+    {0,0,"#2"},//"#2",
+    {0,0,"#3"},//"#3",
+    {0,0,"#4"},//"#4",
+    {0,0,"#5"},//"#5",
+    {0,0,"#6"},//"#6",
+    {0,0,"#7"},//"#7",
 };//From Table 2-1. 16-Bit Addressing Forms with the ModR/M Byte
 char REG[8][5]={//use for search index
     "AL","AX","EAX","MM0","XMM0",
@@ -137,39 +113,39 @@ Index from Eff...Add...[][]=24 ( 1 1  0 0 0 )
                 -------------
 /digit(Opcode)= C8H 11001000
 */
-char EffectiveAddress32Bit_ModRM[32][19]={//$5=disp32(#2**5),$S=[--][--]=>SIB bytes
-    "[EAX]",
-    "[ECX]",
-    "[EDX]",
-    "[EBX]",
-    "$S",
-    "$5",
-    "[ESI]",
-    "[EDI]",
-    "[EAX+$O]",
-    "[ECX+$O]",
-    "[EDX+$O]",
-    "[EBX+$O]",//Change:from [EBX]+$O to [EBX+$O]
-    "$S+$O",
-    "[EBP+$O]",
-    "[ESI+$O]",
-    "[EDI+$O]",
-    "[EAX+$5]",
-    "[ECX+$5]",
-    "[EDX+$5]",
-    "[EBX+$5]",
-    "$S+$5",
-    "[EBP+$5]",
-    "[ESI+$5]",
-    "[EDI+$5]",
-    "#0",
-    "#1",
-    "#2",
-    "#3",
-    "#4",
-    "#5",
-    "#6",
-    "#7",
+ModRMEleument EffectiveAddress32Bit_ModRM[32]={//$5=disp32(#2**5),$S=[--][--]=>SIB bytes
+    {EAX,0,0},//"[EAX]",
+    {ECX,0,0},//"[ECX]",
+    {EDX,0,0},//"[EDX]",
+    {EBX,0,0},//"[EBX]",
+    {0,0,"$S"},//"$S",
+    {0,0,"$5"},//"$5",
+    {ESI,0,0},//"[ESI]",
+    {EDI,0,0},//"[EDI]",
+    {EAX,0,"$O"},//"[EAX+$O]",
+    {ECX,0,"$O"},//"[ECX+$O]",
+    {EDX,0,"$O"},//"[EDX+$O]",
+    {EBX,0,"$O"},//"[EBX+$O]",//Change:from [EBX]+$O to [EBX+$O]
+    {0,0,"$SO"},//"[$S+$O]",=>$SO import change//S should be front
+    {EBP,0,"$O"},//"[EBP+$O]",
+    {ESI,0,"$O"},//"[ESI+$O]",
+    {EDI,0,"$O"},//"[EDI+$O]",
+    {EAX,0,"$5"},//"[EAX+$5]",
+    {ECX,0,"$5"},//"[ECX+$5]",
+    {EDX,0,"$5"},//"[EDX+$5]",
+    {EBX,0,"$5"},//"[EBX+$5]",
+    {0,0,"$S5"},//"$S+$5",
+    {EBP,0,"$5"},//"[EBP+$5]",
+    {ESI,0,"$5"},//"[ESI+$5]",
+    {EDI,0,"$5"},//"[EDI+$5]",
+    {0,0,"#0"},//"#0",
+    {0,0,"#1"},//"#1",
+    {0,0,"#2"},//"#2",
+    {0,0,"#3"},//"#3",
+    {0,0,"#4"},//"#4",
+    {0,0,"#5"},//"#5",
+    {0,0,"#6"},//"#6",
+    {0,0,"#7"},//"#7",
 };//from Table 2-2. 32-Bit Addressing Forms with the ModR/M Byte
 
 //SIB
