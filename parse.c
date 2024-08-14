@@ -22,11 +22,11 @@ command* SearchInInstructionTable(unsigned char _REX,unsigned int _opcode){
     for(i;i<InstructionTableLength;i++){
         if(InstructionTable[i].opcode==_opcode&&InstructionTable[i].opcode==_REX){
             //Think that REX.W==1 is 64-bit, or 32bit
-            if(_REX>>3&&getOperandBit(InstructionTable[i].Operand0)==3){//64-bit
+            if(_REX>>3&&getOperandBit(InstructionTable[i].Operand[0])==3){//64-bit
                 _process=1;
                 break;
             }else{//32bit
-                if(getOperandBit(InstructionTable[i].Operand1)==2){
+                if(getOperandBit(InstructionTable[i].Operand[0])==2){
                     _process=1;
                     break;
                 }
@@ -56,22 +56,25 @@ short int GetIsImm(operand o){
 }
 
 short int GetImmFromCommand(command* cmd){
-    return GetIsImm(cmd->Operand0)^GetIsImm(cmd->Operand1)^GetIsImm(cmd->Operand2)^GetIsImm(cmd->Operand3);
+    return GetIsImm(cmd->Operand[0])^GetIsImm(cmd->Operand[1])^GetIsImm(cmd->Operand[2])^GetIsImm(cmd->Operand[3]);
 }
-
-void ParseCommand(BYTE* CODE){
+#define MAX_IMMString_LENGTH 40
+void ParseCommand(BYTE* CODE,unsigned short int BIT){
     BYTE*v=CODE;
     unsigned char REX=0;//4bit=>[WRXB]
     unsigned int opcode=0;
     short int imm;
     signed long long int immdata=0;
+    char* immstring;
+
+    char* Ret[5];//[0,1,2,3,4,5]=>[Instruction name],[Op0],[Op1],[Op2],[Op3]
     if(v->value>>4==4){//This must be REX
         REX=(unsigned char)(v->value^15);
         v=v->next;
     }//opcode
     //1/2/3Byte,this is only 1Byte
     command* t=SearchInInstructionTable(REX,opcode);
-
+    Ret[0]=t->name;
     if(t->haveModRM){//Get ModRM
         unsigned char ModRMdata=v->value;
         unsigned char SIBdata=0;
@@ -91,9 +94,10 @@ void ParseCommand(BYTE* CODE){
                 Dispdata=-(~Dispdata+1);
             }
         }
+        ModRMFnRet RetData=getRM_byModRM(ModRMdata,SIBdata,Dispdata,BIT);
     }
     
-
+    
     imm=GetImmFromCommand(t);
     if(imm){//geting imm
         for(int i=0;i<(1<<(imm-1));i++){
@@ -103,6 +107,8 @@ void ParseCommand(BYTE* CODE){
         if(immdata>>(8*(1<<(imm-1))-1)){//This num <0
             immdata=-(~immdata+1);
         }
+        immstring=(char*)malloc(MAX_IMMString_LENGTH*sizeof(char));
+        Extend_itoa(immdata,immstring,16);
     }
     
 };
